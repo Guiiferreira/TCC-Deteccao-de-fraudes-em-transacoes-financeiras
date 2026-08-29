@@ -28,8 +28,9 @@ COMO RODAR:
     python ml/train.py
 
 O script imprime no terminal a análise exploratória, o comparativo de
-métricas entre os três algoritmos, e ao final salva o modelo com melhor
-desempenho (por padrão, o de maior AUC-ROC) pronto para uso pela API.
+métricas entre os três algoritmos, e ao final salva o modelo de melhor
+F1-score entre os que atingem o recall mínimo de 70% (RNF03), pronto
+para uso pela API.
 """
 
 import os
@@ -50,6 +51,8 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
 # Adiciona a raiz do projeto ao path, para permitir rodar este script
@@ -185,9 +188,20 @@ def main():
     # ------------------------------------------------------------------
 
     modelos = {
-        "Regressao_Logistica": LogisticRegression(
-            class_weight="balanced", max_iter=1000, random_state=42
-        ),
+        # Regressão Logística é sensível à escala das variáveis (ex.:
+        # "Amount" varia de 0 a milhares, enquanto V1-V28 já estão em
+        # escala pequena). Sem normalização, o otimizador pode não
+        # convergir e o modelo fica prejudicado na comparação — por
+        # isso ela vai dentro de um Pipeline com StandardScaler.
+        # Árvore de Decisão e Random Forest não precisam disso: são
+        # baseados em divisões (splits) por variável, não em distância
+        # ou gradiente, então a escala não afeta o resultado.
+        "Regressao_Logistica": Pipeline([
+            ("normalizador", StandardScaler()),
+            ("classificador", LogisticRegression(
+                class_weight="balanced", max_iter=1000, random_state=42
+            )),
+        ]),
         "Arvore_de_Decisao": DecisionTreeClassifier(
             class_weight="balanced", random_state=42
         ),
@@ -222,11 +236,41 @@ def main():
     ]
     print(tabela.to_string(index=False))
 
-    # Escolhe o melhor modelo por AUC-ROC (métrica mais robusta a
-    # desbalanceamento entre as calculadas aqui)
-    melhor = max(resultados, key=lambda r: r["auc_roc"])
+    # ------------------------------------------------------------------
+    # Escolha do melhor modelo.
+    #
+    # Não usamos AUC-ROC como critério único: em cenários muito
+    # desbalanceados como este, um modelo pode ter AUC-ROC alta e ainda
+    # assim gerar um volume enorme de falsos positivos no limiar padrão
+    # (0.5) — o que o torna inútil na prática (sobrecarrega a equipe de
+    # análise com alertas falsos).
+    #
+    # Critério adotado: entre os modelos que atendem ao RNF03 (recall
+    # mínimo de 70% na classe fraude), escolhe o de maior F1-score, que
+    # equilibra precisão e recall. Se nenhum atender ao RNF03, cai para
+    # o de maior F1-score geral (e avisa explicitamente).
+    # ------------------------------------------------------------------
+    RECALL_MINIMO_RNF03 = 0.70
+
+    candidatos = [r for r in resultados if r["recall"] >= RECALL_MINIMO_RNF03]
+
+    if candidatos:
+        melhor = max(candidatos, key=lambda r: r["f1_score"])
+    else:
+        melhor = max(resultados, key=lambda r: r["f1_score"])
+        print(
+            f"\nATENÇÃO: nenhum modelo atingiu o recall mínimo de "
+            f"{RECALL_MINIMO_RNF03:.0%} exigido pelo RNF03. Selecionando "
+            f"o de maior F1-score mesmo assim — revisar antes de usar em produção."
+        )
+
     nome_melhor = melhor["algoritmo"]
-    print(f"\nMelhor modelo (por AUC-ROC): {nome_melhor} (AUC-ROC = {melhor['auc_roc']:.4f})")
+    print(
+        f"\nMelhor modelo (F1-score, entre os que atendem recall >= "
+        f"{RECALL_MINIMO_RNF03:.0%}): {nome_melhor} "
+        f"(F1={melhor['f1_score']:.4f}, recall={melhor['recall']:.4f}, "
+        f"precisão={melhor['precisao']:.4f}, AUC-ROC={melhor['auc_roc']:.4f})"
+    )
 
     # ------------------------------------------------------------------
     # Salva o melhor modelo no formato esperado por services/ml_service.py

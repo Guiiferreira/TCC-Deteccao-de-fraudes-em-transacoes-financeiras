@@ -14,7 +14,7 @@ Logística, Árvore de Decisão, Random Forest) sem mexer na API.
 import time
 
 import joblib
-import numpy as np
+import pandas as pd
 
 
 class MLService:
@@ -69,12 +69,15 @@ class MLService:
 
         inicio = time.perf_counter()
 
-        # Monta o vetor de entrada na mesma ordem de colunas usada no treino
-        vetor = np.array([[features.get(col, 0.0) for col in self.nome_colunas]])
+        # Monta a entrada como DataFrame com os nomes de colunas usados
+        # no treino (evita warning do sklearn e deixa explícito qual
+        # valor corresponde a qual feature)
+        linha = {col: features.get(col, 0.0) for col in self.nome_colunas}
+        entrada = pd.DataFrame([linha], columns=self.nome_colunas)
 
         # predict_proba retorna [prob_classe_0, prob_classe_1]; assumimos
         # que a classe 1 = fraude (convenção usada no dataset Kaggle)
-        probabilidade_fraude = float(self.modelo.predict_proba(vetor)[0][1])
+        probabilidade_fraude = float(self.modelo.predict_proba(entrada)[0][1])
 
         tempo_resposta_ms = (time.perf_counter() - inicio) * 1000
 
@@ -94,4 +97,18 @@ ml_service: "MLService | None" = None
 def init_ml_service(modelo_path: str):
     global ml_service
     ml_service = MLService(modelo_path)
+    return ml_service
+
+
+def get_ml_service() -> "MLService | None":
+    """
+    Retorna a instância atual do serviço de ML.
+
+    Usar esta função (em vez de importar a variável `ml_service`
+    diretamente) é importante: `from services.ml_service import
+    ml_service` copia o valor no momento do import (que é None, antes
+    da app inicializar), e não seria atualizado depois que
+    init_ml_service() roda. Chamando a função sempre pegamos o valor
+    atual.
+    """
     return ml_service

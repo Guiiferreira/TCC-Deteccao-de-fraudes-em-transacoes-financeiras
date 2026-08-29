@@ -1,0 +1,15 @@
+# Dataset (muito grande para o Git — cada dev baixa localmente)
+ml/dados/*.csv
+
+# Modelo treinado (gerado localmente, não devia ir pro repositório)
+ml/modelos_salvos/*.pkl
+
+# Banco de dados local
+*.db
+
+# Ambiente virtual
+venv/
+
+# Cache do Python
+__pycache__/
+*.pyc

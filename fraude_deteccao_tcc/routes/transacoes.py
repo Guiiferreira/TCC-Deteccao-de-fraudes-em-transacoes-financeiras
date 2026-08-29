@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 
 from models import db, Transacao
-from services.ml_service import ml_service
+from services.ml_service import get_ml_service
 
 transacoes_bp = Blueprint("transacoes", __name__)
 
@@ -15,6 +15,7 @@ def classificar_transacao():
     RNF01: deve responder em menos de 500ms (o tempo é medido e devolvido
     na resposta, para que a equipe possa monitorar/registrar no artigo).
     """
+    ml_service = get_ml_service()
     if ml_service is None or not ml_service.modelo_disponivel():
         return jsonify({
             "erro": "Nenhum modelo treinado disponível. Rode ml/train.py."

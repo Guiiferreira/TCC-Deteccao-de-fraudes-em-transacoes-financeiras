@@ -25,6 +25,8 @@ class ModeloTreinado(db.Model):
     recall = db.Column(db.Float, nullable=True)
     f1_score = db.Column(db.Float, nullable=True)
     auc_roc = db.Column(db.Float, nullable=True)
+    # Matriz de confusão salva como JSON: [[VN, FP], [FN, VP]]
+    matriz_confusao = db.Column(db.JSON, nullable=True)
 
     # Caminho do arquivo .pkl serializado (RF01)
     caminho_arquivo = db.Column(db.String(255), nullable=False)
@@ -42,5 +44,6 @@ class ModeloTreinado(db.Model):
             "recall": self.recall,
             "f1_score": self.f1_score,
             "auc_roc": self.auc_roc,
+            "matriz_confusao": self.matriz_confusao,
             "ativo": self.ativo,
         }

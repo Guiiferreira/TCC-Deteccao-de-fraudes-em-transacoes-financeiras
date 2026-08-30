@@ -225,7 +225,8 @@ def main():
         modelos_treinados[nome] = modelo_treinado
 
     # ------------------------------------------------------------------
-    # Tabela comparativa final 
+    # Tabela comparativa final (útil para colar direto na seção de
+    # Resultados do artigo)
     # ------------------------------------------------------------------
     print("\n" + "=" * 60)
     print("COMPARATIVO FINAL")
@@ -331,6 +332,7 @@ def registrar_modelos_no_banco(resultados, nome_melhor, versao_melhor):
                 recall=r["recall"],
                 f1_score=r["f1_score"],
                 auc_roc=r["auc_roc"],
+                matriz_confusao=r["matriz_confusao"],
                 caminho_arquivo=CAMINHO_MODELO_SAIDA if eh_o_escolhido else "não salvo (não foi o modelo escolhido)",
                 ativo=eh_o_escolhido,
             )

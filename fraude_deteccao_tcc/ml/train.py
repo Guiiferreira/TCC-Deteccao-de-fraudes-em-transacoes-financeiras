@@ -225,8 +225,7 @@ def main():
         modelos_treinados[nome] = modelo_treinado
 
     # ------------------------------------------------------------------
-    # Tabela comparativa final (útil para colar direto na seção de
-    # Resultados do artigo)
+    # Tabela comparativa final 
     # ------------------------------------------------------------------
     print("\n" + "=" * 60)
     print("COMPARATIVO FINAL")
@@ -288,10 +287,59 @@ def main():
 
     print(f"\nModelo salvo em: {CAMINHO_MODELO_SAIDA}")
     print(f"Versão: {versao}")
+
+    # ------------------------------------------------------------------
+    # Registra os 3 modelos e suas métricas no banco (RF01, RF06),
+    # marcando o escolhido como ativo — é o que o endpoint
+    # GET /api/metricas consulta.
+    # ------------------------------------------------------------------
+    registrar_modelos_no_banco(resultados, nome_melhor, versao)
+
     print("\nPróximo passo: rode a API (python app.py) e teste o endpoint "
           "/transacoes/classificar com uma transação real do dataset.")
 
     return resultados, nome_melhor
+
+
+def registrar_modelos_no_banco(resultados, nome_melhor, versao_melhor):
+    """
+    Insere um registro em ModeloTreinado para cada algoritmo comparado,
+    marcando como ativo apenas o modelo escolhido (o mesmo que foi
+    salvo em .pkl). Isso é o que alimenta o endpoint GET /api/metricas
+    (RF06), permitindo consultar as métricas de qualquer um dos
+    modelos comparados, não só o vencedor.
+
+    Roda dentro do contexto da aplicação Flask para reaproveitar a
+    mesma configuração de banco usada pela API (config.py).
+    """
+    # Import local para evitar dependência circular entre ml/train.py
+    # e app.py fora da hora de rodar o treino.
+    from app import create_app
+    from models import db, ModeloTreinado
+
+    app = create_app()
+    with app.app_context():
+        # Desativa qualquer modelo anteriormente marcado como ativo
+        ModeloTreinado.query.update({"ativo": False})
+
+        for r in resultados:
+            eh_o_escolhido = r["algoritmo"] == nome_melhor
+            registro = ModeloTreinado(
+                versao=versao_melhor if eh_o_escolhido else f"{r['algoritmo'].lower()}_{pd.Timestamp.now().strftime('%Y-%m-%d_%H%M%S')}",
+                algoritmo=r["algoritmo"],
+                precisao=r["precisao"],
+                recall=r["recall"],
+                f1_score=r["f1_score"],
+                auc_roc=r["auc_roc"],
+                caminho_arquivo=CAMINHO_MODELO_SAIDA if eh_o_escolhido else "não salvo (não foi o modelo escolhido)",
+                ativo=eh_o_escolhido,
+            )
+            db.session.add(registro)
+
+        db.session.commit()
+
+    print(f"\n{len(resultados)} modelo(s) registrado(s) no banco de dados "
+          f"(tabela modelos_treinados). Modelo ativo: {nome_melhor}.")
 
 
 if __name__ == "__main__":

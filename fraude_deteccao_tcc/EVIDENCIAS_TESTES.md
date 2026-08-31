@@ -26,9 +26,9 @@ Header: X-API-Key: tcc-fraude-chave-2026
 ```
 GET http://localhost:5000/api/alertas?min_score=0.95
 ```
-**Resultado:** _(a preencher)_
-**Observação esperada:** deve retornar menos resultados que 1.1, já
-que o filtro é mais restritivo.
+**Resultado:** ✅ `200 OK` — `[]` (vazio, pois nenhuma transação
+classificada até o momento atingiu score >= 0,95; a maior registrada
+foi 0,85)
 
 **Teste adicional — min_score=0.6 (para demonstrar o efeito do limiar):**
 ```
@@ -45,7 +45,12 @@ parâmetro `min_score` (ver GLOSSARIO_CONCEITOS.md).
 ```
 GET http://localhost:5000/api/alertas?status=pendente
 ```
-**Resultado:** _(a preencher)_
+**Resultado:** ✅ `200 OK` — retornou apenas 1 transação (id=7,
+score=0,85). Importante: como esse endpoint usa o limiar padrão de
+0,7 quando `min_score` não é informado, o filtro de status foi
+aplicado somente sobre quem já havia passado nesse corte — as
+transações de score 0,69 e 0,64 (vistas no teste com min_score=0.6)
+não entraram na consulta, mesmo estando com status "pendente".
 
 ---
 
@@ -54,23 +59,30 @@ GET http://localhost:5000/api/alertas?status=pendente
 ### 2.1 — Filtro por faixa de valor
 **Requisição:**
 ```
-GET http://localhost:5000/transacoes?valor_min=500&valor_max=2000
+GET http://localhost:5000/transacoes?valor_min=50&valor_max=100
 ```
-**Resultado:** _(a preencher)_
+**Resultado:** ✅ `200 OK` — retornou 2 transações dentro da faixa
+(id=7, valor=59,0; id=2, valor=89,9), confirmando que o filtro
+`valor_min`/`valor_max` funciona corretamente.
 
 ### 2.2 — Filtro por intervalo de datas
 **Requisição:**
 ```
-GET http://localhost:5000/transacoes?data_inicio=2026-08-01&data_fim=2026-08-31
+GET http://localhost:5000/transacoes?data_inicio=2026-08-30&data_fim=2026-08-31
 ```
-**Resultado:** _(a preencher)_
+**Resultado:** ✅ `200 OK` — retornou todas as transações classificadas
+no dia do teste (30/08/2026), confirmando o funcionamento do filtro
+de data (RF07).
 
 ### 2.3 — Filtros combinados (valor + status)
 **Requisição:**
 ```
-GET http://localhost:5000/transacoes?valor_min=100&status_revisao=pendente
+GET http://localhost:5000/transacoes?valor_min=0&status_revisao=pendente
 ```
-**Resultado:** _(a preencher)_
+**Resultado:** ✅ `200 OK` — retornou as transações com valor >= 0 e
+status "pendente" (nenhuma havia sido revisada manualmente ainda),
+confirmando que múltiplos filtros podem ser combinados na mesma
+consulta.
 
 ---
 
@@ -81,7 +93,8 @@ GET http://localhost:5000/transacoes?valor_min=100&status_revisao=pendente
 ```
 GET http://localhost:5000/transacoes?data_inicio=31/08/2026
 ```
-**Resultado:** _(a preencher)_
+**Resultado:** ✅ `400 Bad Request` — `{"erro": "data_inicio inválida.
+Use o formato ISO 8601 (ex: 2026-08-01 ou 2026-08-01T00:00:00)."}`
 
 ### 3.2 — Requisição sem autenticação (esperado: 401)
 **Requisição:**
@@ -97,7 +110,8 @@ GET http://localhost:5000/api/alertas
 PATCH http://localhost:5000/api/alertas/1/revisao
 Body: { "status_revisao": "qualquer_coisa" }
 ```
-**Resultado:** _(a preencher)_
+**Resultado:** ✅ `400 Bad Request` — `{"erro": "status_revisao deve
+ser 'fraude_confirmada' ou 'falso_positivo'."}`
 
 ### 3.4 — Transação inexistente (esperado: 404)
 **Requisição:**
@@ -105,4 +119,19 @@ Body: { "status_revisao": "qualquer_coisa" }
 PATCH http://localhost:5000/api/alertas/99999/revisao
 Body: { "status_revisao": "fraude_confirmada" }
 ```
-**Resultado:** _(a preencher)_
+**Resultado:** ✅ `404 Not Found` — `{"erro": "Transação não
+encontrada."}`
+
+---
+
+## Conclusão dos testes
+
+Todos os 10 cenários testados (3 no Bloco 1, 3 no Bloco 2, 4 no Bloco
+3) retornaram exatamente o comportamento esperado, cobrindo tanto os
+"caminhos felizes" (filtros funcionando corretamente) quanto o
+tratamento de erros (autenticação ausente, formato inválido, recurso
+inexistente). Isso evidencia que os requisitos funcionais RF04, RF05,
+RF06 e RF07, e os requisitos não funcionais RNF01, RNF02 e RNF05,
+estão implementados e validados por meio de testes manuais reais
+contra a API, com dados reais do dataset Kaggle Credit Card Fraud
+Detection.

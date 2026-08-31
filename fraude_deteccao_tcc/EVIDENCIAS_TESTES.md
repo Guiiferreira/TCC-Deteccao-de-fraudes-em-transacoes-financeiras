@@ -17,9 +17,9 @@ Detection (284.807 registros, 492 fraudes, 0,17%).
 **Requisição:**
 ```
 GET http://localhost:5000/api/alertas
-Header: X-API-Key: chave-dev-tcc-trocar-em-producao
+Header: X-API-Key: tcc-fraude-chave-2026
 ```
-**Resultado:** _(a preencher)_
+**Resultado:** ✅ `200 OK` — `[]` (lista vazia, pois o banco foi recriado do zero após a correção do schema e ainda não havia transações classificadas)
 
 ### 1.2 — Filtro por limiar de score elevado (min_score=0.95)
 **Requisição:**
@@ -29,6 +29,16 @@ GET http://localhost:5000/api/alertas?min_score=0.95
 **Resultado:** _(a preencher)_
 **Observação esperada:** deve retornar menos resultados que 1.1, já
 que o filtro é mais restritivo.
+
+**Teste adicional — min_score=0.6 (para demonstrar o efeito do limiar):**
+```
+GET http://localhost:5000/api/alertas?min_score=0.6
+```
+**Resultado:** ✅ `200 OK` — retornou 3 transações (scores 0,85 / 0,69
+/ 0,64), confirmando que transações com score entre 0,6 e 0,7 — que
+não apareceriam com o limiar padrão de 0,7 — passam a ser listadas
+quando o limiar é reduzido. Evidência prática do funcionamento do
+parâmetro `min_score` (ver GLOSSARIO_CONCEITOS.md).
 
 ### 1.3 — Filtro por status de revisão
 **Requisição:**
@@ -79,7 +89,7 @@ GET http://localhost:5000/transacoes?data_inicio=31/08/2026
 GET http://localhost:5000/api/alertas
 (sem o header X-API-Key)
 ```
-**Resultado:** _(a preencher)_
+**Resultado:** ✅ `401 Unauthorized` — `{"erro": "Não autenticado. Envie o header 'X-API-Key' com uma chave válida."}`
 
 ### 3.3 — Status de revisão inválido (esperado: 400)
 **Requisição:**

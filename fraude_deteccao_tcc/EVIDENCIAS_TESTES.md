@@ -19,14 +19,14 @@ Detection (284.807 registros, 492 fraudes, 0,17%).
 GET http://localhost:5000/api/alertas
 Header: X-API-Key: tcc-fraude-chave-2026
 ```
-**Resultado:** ✅ `200 OK` — `[]` (lista vazia, pois o banco foi recriado do zero após a correção do schema e ainda não havia transações classificadas)
+**Resultado:** `200 OK` — `[]` (lista vazia, pois o banco foi recriado do zero após a correção do schema e ainda não havia transações classificadas)
 
 ### 1.2 — Filtro por limiar de score elevado (min_score=0.95)
 **Requisição:**
 ```
 GET http://localhost:5000/api/alertas?min_score=0.95
 ```
-**Resultado:** ✅ `200 OK` — `[]` (vazio, pois nenhuma transação
+**Resultado:** `200 OK` — `[]` (vazio, pois nenhuma transação
 classificada até o momento atingiu score >= 0,95; a maior registrada
 foi 0,85)
 
@@ -34,7 +34,7 @@ foi 0,85)
 ```
 GET http://localhost:5000/api/alertas?min_score=0.6
 ```
-**Resultado:** ✅ `200 OK` — retornou 3 transações (scores 0,85 / 0,69
+**Resultado:** `200 OK` — retornou 3 transações (scores 0,85 / 0,69
 / 0,64), confirmando que transações com score entre 0,6 e 0,7 — que
 não apareceriam com o limiar padrão de 0,7 — passam a ser listadas
 quando o limiar é reduzido. Evidência prática do funcionamento do
@@ -45,7 +45,7 @@ parâmetro `min_score` (ver GLOSSARIO_CONCEITOS.md).
 ```
 GET http://localhost:5000/api/alertas?status=pendente
 ```
-**Resultado:** ✅ `200 OK` — retornou apenas 1 transação (id=7,
+**Resultado:** `200 OK` — retornou apenas 1 transação (id=7,
 score=0,85). Importante: como esse endpoint usa o limiar padrão de
 0,7 quando `min_score` não é informado, o filtro de status foi
 aplicado somente sobre quem já havia passado nesse corte — as
@@ -61,7 +61,7 @@ não entraram na consulta, mesmo estando com status "pendente".
 ```
 GET http://localhost:5000/transacoes?valor_min=50&valor_max=100
 ```
-**Resultado:** ✅ `200 OK` — retornou 2 transações dentro da faixa
+**Resultado:** `200 OK` — retornou 2 transações dentro da faixa
 (id=7, valor=59,0; id=2, valor=89,9), confirmando que o filtro
 `valor_min`/`valor_max` funciona corretamente.
 
@@ -70,7 +70,7 @@ GET http://localhost:5000/transacoes?valor_min=50&valor_max=100
 ```
 GET http://localhost:5000/transacoes?data_inicio=2026-08-30&data_fim=2026-08-31
 ```
-**Resultado:** ✅ `200 OK` — retornou todas as transações classificadas
+**Resultado:** `200 OK` — retornou todas as transações classificadas
 no dia do teste (30/08/2026), confirmando o funcionamento do filtro
 de data (RF07).
 
@@ -79,7 +79,7 @@ de data (RF07).
 ```
 GET http://localhost:5000/transacoes?valor_min=0&status_revisao=pendente
 ```
-**Resultado:** ✅ `200 OK` — retornou as transações com valor >= 0 e
+**Resultado:** `200 OK` — retornou as transações com valor >= 0 e
 status "pendente" (nenhuma havia sido revisada manualmente ainda),
 confirmando que múltiplos filtros podem ser combinados na mesma
 consulta.
@@ -93,7 +93,7 @@ consulta.
 ```
 GET http://localhost:5000/transacoes?data_inicio=31/08/2026
 ```
-**Resultado:** ✅ `400 Bad Request` — `{"erro": "data_inicio inválida.
+**Resultado:** `400 Bad Request` — `{"erro": "data_inicio inválida.
 Use o formato ISO 8601 (ex: 2026-08-01 ou 2026-08-01T00:00:00)."}`
 
 ### 3.2 — Requisição sem autenticação (esperado: 401)
@@ -102,7 +102,7 @@ Use o formato ISO 8601 (ex: 2026-08-01 ou 2026-08-01T00:00:00)."}`
 GET http://localhost:5000/api/alertas
 (sem o header X-API-Key)
 ```
-**Resultado:** ✅ `401 Unauthorized` — `{"erro": "Não autenticado. Envie o header 'X-API-Key' com uma chave válida."}`
+**Resultado:** `401 Unauthorized` — `{"erro": "Não autenticado. Envie o header 'X-API-Key' com uma chave válida."}`
 
 ### 3.3 — Status de revisão inválido (esperado: 400)
 **Requisição:**
@@ -110,7 +110,7 @@ GET http://localhost:5000/api/alertas
 PATCH http://localhost:5000/api/alertas/1/revisao
 Body: { "status_revisao": "qualquer_coisa" }
 ```
-**Resultado:** ✅ `400 Bad Request` — `{"erro": "status_revisao deve
+**Resultado:** `400 Bad Request` — `{"erro": "status_revisao deve
 ser 'fraude_confirmada' ou 'falso_positivo'."}`
 
 ### 3.4 — Transação inexistente (esperado: 404)
@@ -119,10 +119,43 @@ ser 'fraude_confirmada' ou 'falso_positivo'."}`
 PATCH http://localhost:5000/api/alertas/99999/revisao
 Body: { "status_revisao": "fraude_confirmada" }
 ```
-**Resultado:** ✅ `404 Not Found` — `{"erro": "Transação não
+**Resultado:** `404 Not Found` — `{"erro": "Transação não
 encontrada."}`
 
 ---
+
+## Testes complementares
+
+### C.1 — Listagem sem nenhum filtro
+**Requisição:**
+```
+GET http://localhost:5000/transacoes
+Header: X-API-Key: tcc-fraude-chave-2026
+```
+**Resultado:** `200 OK` — retornou todas as transações classificadas
+até o momento, ordenadas da mais recente para a mais antiga (confirma
+o comportamento padrão de `GET /transacoes` sem parâmetros).
+
+### C.2 — Filtro combinado min_score + status em /api/alertas
+**Requisição:**
+```
+GET http://localhost:5000/api/alertas?min_score=0.6&status=pendente
+```
+**Resultado:** `200 OK` — retornou as 3 transações com score >= 0,6
+E status "pendente" simultaneamente (id 7, 6 e 4), confirmando que os
+dois filtros de `/api/alertas` podem ser combinados na mesma consulta.
+
+### C.3 — Confirmação do log de auditoria (RNF04)
+**Ação:** classificação de uma nova transação via `POST
+/transacoes/classificar` (id=8, score=0,85, fraude).
+**Resultado:** confirmado no terminal do servidor Flask:
+```
+[2026-09-02 17:43:08,559] INFO in transacoes: AUDITORIA: transacao_id=8
+classificada como 'fraude' (score=0.8500, modelo=random_forest_v1_2026-08-30)
+```
+Evidencia que toda classificação realizada gera automaticamente uma
+linha de log com identificação da transação, resultado e versão do
+modelo utilizado, atendendo ao requisito de rastreabilidade (RNF04).
 
 ## Conclusão dos testes
 

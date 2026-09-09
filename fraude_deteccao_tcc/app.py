@@ -5,6 +5,7 @@ from models import db
 from services.ml_service import init_ml_service
 from routes.transacoes import transacoes_bp
 from routes.alertas import alertas_bp
+from routes.painel import painel_bp
 
 
 def create_app(config_class=Config):
@@ -19,9 +20,12 @@ def create_app(config_class=Config):
     # Serviço de ML (carrega o modelo treinado, se já existir)
     init_ml_service(app.config["MODELO_PATH"])
 
-    # Registro das rotas (RF02, RF03, RF04, RF05, RF06, RF07)
+    # Registro das rotas da API (RF02, RF03, RF04, RF05, RF06, RF07)
     app.register_blueprint(transacoes_bp)
     app.register_blueprint(alertas_bp)
+
+    # Painel web visual (mesmos requisitos, acessado via navegador)
+    app.register_blueprint(painel_bp)
 
     @app.route("/")
     def health_check():

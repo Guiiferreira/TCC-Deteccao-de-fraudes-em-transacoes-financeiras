@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Métricas — Painel Antifraude{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Métricas do modelo</h1>
+    <div class="subtitle">Desempenho do modelo atualmente em produção, medido no conjunto de teste durante o treino.</div>
+  </div>
+</div>
+
+{% if not modelo %}
+  <div class="empty-state">Nenhum modelo ativo registrado. Rode ml/train.py para treinar e ativar um modelo.</div>
+{% else %}
+
+<div class="model-meta">
+  Modelo ativo: <strong>{{ modelo.algoritmo.replace('_', ' ') }}</strong>
+  · versão <strong>{{ modelo.versao }}</strong>
+  · treinado em {{ modelo.data_treino.strftime('%d/%m/%Y %H:%M') }}
+</div>
+
+<div class="stat-row">
+  <div class="stat">
+    <div class="label">Precisão</div>
+    <div class="value">{{ "%.1f"|format(modelo.precisao * 100) }}%</div>
+  </div>
+  <div class="stat">
+    <div class="label">Recall</div>
+    <div class="value">{{ "%.1f"|format(modelo.recall * 100) }}%</div>
+  </div>
+  <div class="stat">
+    <div class="label">F1-score</div>
+    <div class="value">{{ "%.3f"|format(modelo.f1_score) }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">AUC-ROC</div>
+    <div class="value">{{ "%.3f"|format(modelo.auc_roc) }}</div>
+  </div>
+</div>
+
+<div class="section-title">Matriz de confusão (conjunto de teste)</div>
+{% if modelo.matriz_confusao %}
+<div class="confusion-grid">
+  <div class="head"></div>
+  <div class="head">Previsto: legítima</div>
+  <div class="head">Previsto: fraude</div>
+
+  <div class="head">Real: legítima</div>
+  <div class="cell tn"><span class="num">{{ modelo.matriz_confusao[0][0] }}</span><span class="tag">verdadeiro negativo</span></div>
+  <div class="cell fp"><span class="num">{{ modelo.matriz_confusao[0][1] }}</span><span class="tag">falso positivo</span></div>
+
+  <div class="head">Real: fraude</div>
+  <div class="cell fn"><span class="num">{{ modelo.matriz_confusao[1][0] }}</span><span class="tag">falso negativo</span></div>
+  <div class="cell tp"><span class="num">{{ modelo.matriz_confusao[1][1] }}</span><span class="tag">verdadeiro positivo</span></div>
+</div>
+{% else %}
+<p style="color: var(--ink-soft); font-size: 13.5px;">Matriz de confusão não disponível para este modelo.</p>
+{% endif %}
+
+<div class="section-title">Volume de alertas por dia (últimos 30 dias)</div>
+{% if volume_por_dia|length == 0 %}
+  <p style="color: var(--ink-soft); font-size: 13.5px;">Nenhum alerta registrado ainda.</p>
+{% else %}
+<div class="volume-list">
+  {% for dia, quantidade in volume_por_dia %}
+  <div class="volume-row">
+    <span class="day">{{ dia }}</span>
+    <span class="bar-track">
+      <span class="bar-fill" style="width: {{ (quantidade / volume_maximo * 100)|round|int }}%"></span>
+    </span>
+    <span class="count">{{ quantidade }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

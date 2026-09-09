@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Painel Antifraude{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Painel Antifraude</div>
+    <nav>
+      <a href="{{ url_for('painel.alertas') }}" class="{{ 'active' if request.endpoint == 'painel.alertas' else '' }}">Alertas</a>
+      <a href="{{ url_for('painel.transacoes') }}" class="{{ 'active' if request.endpoint == 'painel.transacoes' else '' }}">Transações</a>
+      <a href="{{ url_for('painel.metricas') }}" class="{{ 'active' if request.endpoint == 'painel.metricas' else '' }}">Métricas do modelo</a>
+    </nav>
+    <a href="{{ url_for('painel.logout') }}" class="logout">Sair</a>
+  </div>
+
+  <div class="container">
+    {% with mensagens = get_flashed_messages(with_categories=true) %}
+      {% for categoria, msg in mensagens %}
+        <div class="flash {{ categoria }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

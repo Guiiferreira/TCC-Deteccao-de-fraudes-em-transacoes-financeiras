@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Transações — Painel Antifraude{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Transações</h1>
+    <div class="subtitle">Histórico completo de transações classificadas, com filtros por valor, status e data.</div>
+  </div>
+</div>
+
+<form method="GET" class="filter-bar" style="margin-bottom: 20px; flex-wrap: wrap;">
+  <label for="valor_min">Valor</label>
+  <input type="number" step="0.01" id="valor_min" name="valor_min" placeholder="mín." value="{{ request.args.get('valor_min', '') }}" style="width:80px">
+  <input type="number" step="0.01" name="valor_max" placeholder="máx." value="{{ request.args.get('valor_max', '') }}" style="width:80px">
+
+  <label for="data_inicio">Data</label>
+  <input type="date" id="data_inicio" name="data_inicio" value="{{ request.args.get('data_inicio', '') }}">
+  <input type="date" name="data_fim" value="{{ request.args.get('data_fim', '') }}">
+
+  <select name="status_revisao">
+    <option value="" {{ 'selected' if not request.args.get('status_revisao') }}>Todos os status</option>
+    <option value="pendente" {{ 'selected' if request.args.get('status_revisao') == 'pendente' }}>Pendente</option>
+    <option value="fraude_confirmada" {{ 'selected' if request.args.get('status_revisao') == 'fraude_confirmada' }}>Fraude confirmada</option>
+    <option value="falso_positivo" {{ 'selected' if request.args.get('status_revisao') == 'falso_positivo' }}>Falso positivo</option>
+  </select>
+  <button type="submit" class="btn">Filtrar</button>
+  <a href="{{ url_for('painel.transacoes') }}" class="btn">Limpar</a>
+</form>
+
+{% if transacoes|length == 0 %}
+  <div class="empty-state">Nenhuma transação encontrada para os filtros informados.</div>
+{% else %}
+<table class="data">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Valor</th>
+      <th>Score</th>
+      <th>Classe prevista</th>
+      <th>Status</th>
+      <th>Classificado em</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in transacoes %}
+    <tr>
+      <td class="id-cell">#{{ t.id }}</td>
+      <td class="num">R$ {{ "%.2f"|format(t.valor)|replace(".", ",") }}</td>
+      <td class="num">{{ "%.2f"|format(t.score) }}</td>
+      <td>{{ t.classe_prevista }}</td>
+      <td><span class="badge {{ t.status_revisao }}">{{ t.status_revisao.replace('_', ' ') }}</span></td>
+      <td class="num">{{ t.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

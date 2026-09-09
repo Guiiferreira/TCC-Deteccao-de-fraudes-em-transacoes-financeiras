@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Alertas — Painel Antifraude{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Alertas</h1>
+    <div class="subtitle">Transações com score de risco acima do limiar configurado, ordenadas da mais suspeita para a menos suspeita.</div>
+  </div>
+  <form method="GET" class="filter-bar">
+    <label for="min_score">Limiar mínimo</label>
+    <input type="number" id="min_score" name="min_score" step="0.05" min="0" max="1" value="{{ limiar }}" style="width:70px">
+    <select name="status" onchange="this.form.submit()">
+      <option value="" {{ 'selected' if not status }}>Todos os status</option>
+      <option value="pendente" {{ 'selected' if status == 'pendente' }}>Pendente</option>
+      <option value="fraude_confirmada" {{ 'selected' if status == 'fraude_confirmada' }}>Fraude confirmada</option>
+      <option value="falso_positivo" {{ 'selected' if status == 'falso_positivo' }}>Falso positivo</option>
+    </select>
+    <button type="submit" class="btn">Filtrar</button>
+  </form>
+</div>
+
+{% if alertas|length == 0 %}
+  <div class="empty-state">
+    Nenhum alerta encontrado para o limiar e status selecionados.
+  </div>
+{% else %}
+<table class="data">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Valor</th>
+      <th>Score de risco</th>
+      <th>Status</th>
+      <th>Classificado em</th>
+      <th>Ação</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for t in alertas %}
+    <tr>
+      <td class="id-cell">#{{ t.id }}</td>
+      <td class="num">R$ {{ "%.2f"|format(t.valor)|replace(".", ",") }}</td>
+      <td>
+        <div class="score-cell">
+          <span class="score-value">{{ "%.2f"|format(t.score) }}</span>
+          <span class="score-bar-track">
+            <span class="score-bar-fill {{ 'high' if t.score >= 0.85 else ('mid' if t.score >= 0.7 else 'safe') }}"
+                  style="width: {{ (t.score * 100)|round|int }}%"></span>
+          </span>
+        </div>
+      </td>
+      <td><span class="badge {{ t.status_revisao }}">{{ t.status_revisao.replace('_', ' ') }}</span></td>
+      <td class="num">{{ t.timestamp.strftime('%d/%m/%Y %H:%M') }}</td>
+      <td>
+        {% if t.status_revisao == 'pendente' %}
+        <div class="actions">
+          <form method="POST" action="{{ url_for('painel.revisar', transacao_id=t.id) }}">
+            <input type="hidden" name="status_revisao" value="fraude_confirmada">
+            <input type="hidden" name="voltar_para" value="{{ request.full_path }}">
+            <button type="submit" class="btn confirmar">Confirmar fraude</button>
+          </form>
+          <form method="POST" action="{{ url_for('painel.revisar', transacao_id=t.id) }}">
+            <input type="hidden" name="status_revisao" value="falso_positivo">
+            <input type="hidden" name="voltar_para" value="{{ request.full_path }}">
+            <button type="submit" class="btn falso">Falso positivo</button>
+          </form>
+        </div>
+        {% else %}
+          <span style="color: var(--ink-soft); font-size: 12.5px;">Revisado</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

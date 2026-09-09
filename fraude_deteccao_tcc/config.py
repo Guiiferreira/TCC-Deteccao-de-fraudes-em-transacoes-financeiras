@@ -29,7 +29,6 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "chave-temporaria-trocar-em-producao")
 
     # RNF02: chave de API exigida para acessar dados de transações
-    # (sensíveis). Em desenvolvimento usa um valor padrão — TROCAR via
-    # variável de ambiente antes de qualquer uso real ou apresentação
-    # pública (nunca deixar a chave padrão em produção).
-    API_KEY = os.environ.get("API_KEY", "chave-dev-tcc-trocar-em-producao")
+    # (sensíveis). Pode ser sobrescrita pela variável de ambiente
+    # API_KEY, caso queiram usar uma chave diferente da padrão.
+    API_KEY = os.environ.get("API_KEY", "tcc-fraude-chave-2026")

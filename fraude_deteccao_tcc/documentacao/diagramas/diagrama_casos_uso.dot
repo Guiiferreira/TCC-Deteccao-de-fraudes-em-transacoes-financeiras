@@ -1,0 +1,54 @@
+digraph UseCaseDiagram {
+    rankdir=LR;
+    bgcolor="white";
+    fontname="Helvetica";
+
+    // Fronteira do sistema
+    subgraph cluster_system {
+        label="Sistema de Detecção de Fraude";
+        fontname="Helvetica-Bold";
+        fontsize=14;
+        style=rounded;
+        color="#1a3a5c";
+        penwidth=2;
+        margin=30;
+
+        node [shape=ellipse, style=filled, fillcolor="#eaf1f8", color="#1a3a5c", fontname="Helvetica", fontsize=11, width=2.6, height=0.7];
+
+        UC01 [label="UC01\nTreinar modelo de\nclassificação"];
+        UC02 [label="UC02\nClassificar\ntransação"];
+        UC03 [label="UC03\nConsultar\ntransações"];
+        UC04 [label="UC04\nConsultar alertas"];
+        UC05 [label="UC05\nRevisar alerta"];
+        UC06 [label="UC06\nConsultar métricas\ndo modelo"];
+        UC07 [label="UC07\nAutenticar-se\n(API Key)", fillcolor="#f5f0e6"];
+    }
+
+    // Atores
+    node [shape=none, style="", fontname="Helvetica-Bold", fontsize=11, image="", margin=0];
+
+    ATOR_CIENTISTA [label="Cientista\nde Dados", shape=plaintext];
+    ATOR_SISTEMA_EXT [label="Sistema Externo\n(Plataforma de\nPagamento)", shape=plaintext];
+    ATOR_ANALISTA [label="Analista de\nFraude", shape=plaintext];
+
+    // Relações ator - caso de uso
+    ATOR_CIENTISTA -> UC01;
+    ATOR_CIENTISTA -> UC06;
+
+    ATOR_SISTEMA_EXT -> UC02;
+
+    ATOR_ANALISTA -> UC03;
+    ATOR_ANALISTA -> UC04;
+    ATOR_ANALISTA -> UC05;
+    ATOR_ANALISTA -> UC06;
+
+    // Include
+    edge [style=dashed, fontname="Helvetica-Oblique", fontsize=9, arrowhead=vee];
+    UC02 -> UC07 [label="<<include>>"];
+    UC03 -> UC07 [label="<<include>>"];
+    UC04 -> UC07 [label="<<include>>"];
+    UC05 -> UC07 [label="<<include>>"];
+    UC06 -> UC07 [label="<<include>>"];
+
+    { rank=same; ATOR_CIENTISTA; ATOR_SISTEMA_EXT; ATOR_ANALISTA; }
+}

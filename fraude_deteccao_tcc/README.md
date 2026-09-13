@@ -140,7 +140,7 @@ O painel tem três telas:
 | Transações | `/painel/transacoes` | RF07 (filtros por valor, status e data) |
 | Métricas do modelo | `/painel/metricas` | RF06 (precisão, recall, F1, matriz de confusão, volume por dia) |
 
-**API REST (para testes via Postman ou integração com outros sistemas):**
+**API REST (para testes com Postman, Insomnia ou outra ferramenta de API, ou para integração com outros sistemas):**
 
 Todas as rotas exigem o header `X-API-Key` com o mesmo valor da chave de acesso.
 
@@ -160,6 +160,52 @@ Com o `(venv)` ativo e a aplicação **parada** (o script sobe sua própria inst
 python testar_local.py
 ```
 Isso popula o banco com dados simulados e testa os principais endpoints da API, imprimindo o resultado de cada um no terminal.
+
+## Simulando o Sistema Externo (para testes manuais)
+
+O ator "Sistema Externo" (a plataforma de pagamento que, em um cenário
+real, enviaria transações para classificação) não está integrado ao
+projeto. Para testar o endpoint `POST /transacoes/classificar` de
+forma realista — com casos reais e rótulo verdadeiro conhecido, em vez
+de valores fictícios — extraia uma transação real do dataset com este
+script:
+
+```bash
+python -c "
+import pandas as pd
+import json
+
+df = pd.read_csv('ml/dados/creditcard.csv')
+colunas = [c for c in df.columns if c != 'Class']
+
+fraude = df[df['Class'] == 1].iloc[0]
+legitima = df[df['Class'] == 0].iloc[0]
+
+payload_fraude = {'valor': float(fraude['Amount']), 'features': {c: float(fraude[c]) for c in colunas}}
+payload_legitima = {'valor': float(legitima['Amount']), 'features': {c: float(legitima[c]) for c in colunas}}
+
+print('=== TRANSAÇÃO FRAUDULENTA (real) ===')
+print(json.dumps(payload_fraude, indent=2))
+print()
+print('=== TRANSAÇÃO LEGÍTIMA (real) ===')
+print(json.dumps(payload_legitima, indent=2))
+"
+```
+
+Troque `.iloc[0]` por outro índice (`.iloc[1]`, `.iloc[2]`, etc.) para
+pegar exemplos diferentes. Cole o JSON gerado no body de uma requisição
+montada em uma ferramenta de teste de API — Postman, Insomnia, Thunder
+Client (extensão do VSCode) ou até `curl` diretamente pelo terminal:
+
+```
+POST http://localhost:5000/transacoes/classificar
+Header: X-API-Key: <sua chave de acesso>
+Body (raw/JSON): (cole o JSON gerado)
+```
+
+Resultado esperado: a transação fraudulenta deve retornar
+`classe_prevista: "fraude"` com score alto; a legítima deve retornar
+`classe_prevista: "legitima"` com score baixo.
 
 ## Status de validação
 

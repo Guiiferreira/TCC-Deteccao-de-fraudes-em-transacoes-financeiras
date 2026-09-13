@@ -2,8 +2,7 @@
 
 Explicações de conceitos técnicos usados no sistema, registradas
 durante o desenvolvimento para reaproveitar na Documentação de
-Software (útil especialmente na seção que descreve a lógica de
-negócio e no Referencial Teórico do artigo).
+Software.
 
 ## Score de risco
 

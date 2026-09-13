@@ -2,8 +2,7 @@
 
 Registro dos testes manuais realizados via Postman contra a API, com
 requisição e resultado obtido. Serve como evidência de validação
-funcional para a Documentação de Software (seção de Testes/Validação)
-e pode ser citado na Metodologia do artigo.
+funcional para a Documentação de Software (seção de Testes/Validação).
 
 Ambiente: modelo ativo = Random Forest (F1=0,8165, recall=0,7365,
 precisão=0,9160), treinado sobre o dataset Kaggle Credit Card Fraud

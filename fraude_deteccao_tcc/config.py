@@ -10,8 +10,7 @@ class Config:
     (nunca deixar senha/segredo hardcoded no código).
     """
 
-    # Banco de dados: por padrão usa SQLite local (fácil para desenvolvimento
-    # e para a entrega do TCC). Para usar PostgreSQL, defina a variável de
+    # Banco de dados: por padrão usa SQLite local. Para usar PostgreSQL, defina a variável de
     # ambiente DATABASE_URL, ex:
     # postgresql://usuario:senha@localhost:5432/fraude_deteccao
     SQLALCHEMY_DATABASE_URI = os.environ.get(

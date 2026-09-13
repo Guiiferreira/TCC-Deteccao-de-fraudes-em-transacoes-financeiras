@@ -3,9 +3,9 @@ Painel web visual do sistema antifraude.
 
 Diferente das rotas em routes/transacoes.py e routes/alertas.py (que
 formam a API REST, autenticada por header X-API-Key para consumo por
-outros sistemas), este painel é voltado para uso humano no navegador
-e usa autenticação por sessão: o analista informa a chave de acesso
-uma vez, no login, e o Flask mantém a sessão autenticada via cookie.
+outros sistemas), este painel é acessado pelo navegador e usa
+autenticação por sessão: o analista informa a chave de acesso uma
+vez, no login, e o Flask mantém a sessão autenticada via cookie.
 
 Reaproveita as mesmas entidades (Transacao, ModeloTreinado) e a mesma
 lógica de negócio das rotas de API, mas consulta o banco diretamente

@@ -181,10 +181,10 @@ def main():
     # ------------------------------------------------------------------
     # Tratamento do desbalanceamento: usamos class_weight="balanced",
     # que ajusta o peso das classes durante o treino sem precisar
-    # duplicar/sintetizar dados (abordagem mais simples e mais rápida
-    # que SMOTE para uma primeira comparação; SMOTE pode ser testado
-    # depois como uma variação adicional, se o grupo quiser aprofundar
-    # a comparação metodológica no artigo).
+    # duplicar/sintetizar dados. Essa abordagem é suportada diretamente
+    # pelos três algoritmos no scikit-learn, sem exigir uma etapa
+    # adicional de pré-processamento sobre os dados de treino.
+    # ------------------------------------------------------------------
     # ------------------------------------------------------------------
 
     modelos = {
@@ -196,6 +196,7 @@ def main():
         # Árvore de Decisão e Random Forest não precisam disso: são
         # baseados em divisões (splits) por variável, não em distância
         # ou gradiente, então a escala não afeta o resultado.
+        
         "Regressao_Logistica": Pipeline([
             ("normalizador", StandardScaler()),
             ("classificador", LogisticRegression(
@@ -225,8 +226,7 @@ def main():
         modelos_treinados[nome] = modelo_treinado
 
     # ------------------------------------------------------------------
-    # Tabela comparativa final (útil para colar direto na seção de
-    # Resultados do artigo)
+    # Tabela comparativa final 
     # ------------------------------------------------------------------
     print("\n" + "=" * 60)
     print("COMPARATIVO FINAL")

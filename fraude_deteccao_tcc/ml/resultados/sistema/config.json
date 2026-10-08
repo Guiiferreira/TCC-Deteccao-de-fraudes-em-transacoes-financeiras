@@ -1,0 +1,19 @@
+{
+  "semente": 42,
+  "n_total": 284807,
+  "fraudes_total": 492,
+  "n_dev": 199364,
+  "fraudes_dev": 344,
+  "n_teste": 85443,
+  "fraudes_teste": 148,
+  "cv": "5 dobras x 3 repetições",
+  "n_arvores_rf": 100,
+  "configuracao": "sistema (ml/train.py, hiperparâmetros padrão)",
+  "hiperparametros_escolhidos": {
+    "LR": {
+      "C": 1.0
+    },
+    "DT": {},
+    "RF": {}
+  }
+}

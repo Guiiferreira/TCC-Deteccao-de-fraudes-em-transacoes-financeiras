@@ -55,3 +55,5 @@ score (é o que garante o histórico completo exigido pelo RF03/RNF04).
 O filtro pelo limiar de 0,7 só é aplicado na **consulta**
 `GET /api/alertas` — ou seja, o corte não decide o que é armazenado,
 decide o que é **exibido como prioritário** para revisão.
+
+

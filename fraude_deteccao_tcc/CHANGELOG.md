@@ -157,3 +157,44 @@ desenvolvimento e validação, não só o resultado final).
   (verdadeiro/falso positivo/negativo) e volume de alertas por dia
 - Acesso sem login redireciona corretamente para a tela de
   autenticação (RNF02 também vale para o painel, não só para a API)
+
+## Etapa 6 — Avaliação estatística dos modelos 
+
+**Implementado:**
+- `ml/experimento.py`: validação cruzada estratificada repetida (5 dobras
+  x 3 repetições, semente 42) no conjunto de desenvolvimento, com o teste
+  usado só na avaliação final; busca em grade dos hiperparâmetros pela
+  AUC-PR; AUC-PR e curva precisão x recall; intervalo de confiança do
+  recall (Wilson) e da AUC-PR (bootstrap); teste de McNemar entre os
+  modelos; comparação no mesmo recall com limiar escolhido no
+  desenvolvimento; sensibilidade da escolha a pisos de recall de 60% a
+  90%; comparação entre ponderação de classes, nenhum balanceamento,
+  undersampling e SMOTE.
+- `ml/medir_latencia_http.py`: mede o tempo da rota
+  `POST /transacoes/classificar` com a API rodando (RNF01).
+- `ml/train.py` passou a mostrar a AUC-PR de cada modelo.
+
+**Inconsistência encontrada e corrigida — regra de decisão:**
+- O `ml/train.py` calculava as métricas com `modelo.predict()`, que só
+  classifica como fraude quando a probabilidade passa de 0,5. A API
+  (`services/ml_service.py`) classifica como fraude a partir de 0,5.
+  No Random Forest, 3 transações do teste têm probabilidade exatamente
+  0,5 (2 delas fraudes), então o treino registrava 109 fraudes
+  detectadas e 10 falsos positivos, enquanto a API, com o mesmo modelo,
+  marcava 111 e 11.
+- Corrigido fazendo o treino usar a mesma regra da API
+  (`probabilidade >= 0,5`), com a constante `LIMIAR_DECISAO` nos dois
+  arquivos. Métricas novas do Random Forest no teste: 111 de 148 fraudes,
+  11 falsos positivos, precisão 91,0%, recall 75,0%, F1 0,822. Regressão
+  Logística e Árvore de Decisão não mudaram.
+
+**Melhoria de desempenho — tempo de resposta da API (RNF01):**
+- Medição com `ml/medir_latencia_http.py` (200 requisições) mostrou
+  inferência média de cerca de 98 ms no servidor e picos acima de 1 s
+  no Windows. Causa: o Random Forest salvo usa `n_jobs=-1`, e cada
+  chamada da API abria threads em todos os núcleos para classificar uma
+  única transação.
+- Corrigido em `services/ml_service.py`: ao carregar o modelo, a API
+  usa `n_jobs=1`. As previsões são idênticas; só muda o tempo. Na
+  máquina de teste em nuvem, a inferência caiu de 29 ms para 9 ms em
+  média e a requisição completa de 35 ms para 15 ms.

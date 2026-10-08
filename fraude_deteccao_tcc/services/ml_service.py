@@ -16,6 +16,11 @@ import time
 import joblib
 import pandas as pd
 
+# Probabilidade a partir da qual a transação é classificada como fraude.
+# Precisa ser igual ao LIMIAR_DECISAO de ml/train.py, para que as métricas
+# do treino descrevam exatamente o que a API faz.
+LIMIAR_DECISAO = 0.5
+
 
 class MLService:
     def __init__(self, modelo_path: str):
@@ -37,6 +42,14 @@ class MLService:
             self.modelo = artefato["modelo"]
             self.nome_colunas = artefato["colunas"]
             self.versao_modelo = artefato.get("versao", "desconhecida")
+
+            # O Random Forest é treinado com n_jobs=-1 (todos os núcleos),
+            # o que acelera o treino. Na API, porém, cada chamada classifica
+            # uma única transação, e abrir várias threads para uma linha
+            # custa mais que a própria previsão. Com n_jobs=1 o resultado
+            # é idêntico e o tempo de resposta cai (RNF01).
+            if hasattr(self.modelo, "n_jobs"):
+                self.modelo.n_jobs = 1
         except FileNotFoundError:
             # Nenhum modelo treinado ainda — normal antes de rodar ml/train.py.
             # A API sobe mesmo assim, mas /transacoes/classificar retorna erro
@@ -83,7 +96,7 @@ class MLService:
 
         return {
             "score": round(probabilidade_fraude, 4),
-            "classe_prevista": "fraude" if probabilidade_fraude >= 0.5 else "legitima",
+            "classe_prevista": "fraude" if probabilidade_fraude >= LIMIAR_DECISAO else "legitima",
             "tempo_resposta_ms": round(tempo_resposta_ms, 2),
             "versao_modelo": self.versao_modelo,
         }

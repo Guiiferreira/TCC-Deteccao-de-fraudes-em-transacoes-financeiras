@@ -1,0 +1,7 @@
+par,escopo,so_a_acerta,so_b_acerta,p_valor
+RF x DT,fraudes (recall),14,2,0.004180908203125
+RF x DT,todas as transações,38,8,9.24769992138863e-06
+RF x LR,fraudes (recall),0,19,3.814697265625e-06
+RF x LR,todas as transações,1796,19,0.0
+DT x LR,fraudes (recall),0,31,9.313225746154785e-10
+DT x LR,todas as transações,1792,45,0.0

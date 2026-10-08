@@ -43,6 +43,7 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
+    average_precision_score,
     classification_report,
     confusion_matrix,
     f1_score,
@@ -63,6 +64,10 @@ CAMINHO_DATASET = os.path.join(os.path.dirname(__file__), "dados", "creditcard.c
 CAMINHO_MODELO_SAIDA = os.path.join(
     os.path.dirname(__file__), "modelos_salvos", "modelo_atual.pkl"
 )
+
+# Probabilidade a partir da qual a transação é classificada como
+# fraude. Precisa ser igual à usada em services/ml_service.py.
+LIMIAR_DECISAO = 0.5
 
 
 def carregar_dataset():
@@ -141,8 +146,14 @@ def treinar_e_avaliar(nome, modelo, X_treino, y_treino, X_teste, y_teste):
     modelo.fit(X_treino, y_treino)
     tempo_treino = time.perf_counter() - inicio
 
-    y_pred = modelo.predict(X_teste)
     y_proba = modelo.predict_proba(X_teste)[:, 1]
+
+    # Mesma regra de decisão da API (services/ml_service.py): fraude
+    # quando a probabilidade é maior ou igual a 0,5. O modelo.predict()
+    # do scikit-learn só marca fraude acima de 0,5, e no Random Forest
+    # algumas transações têm probabilidade exatamente 0,5 — com predict()
+    # as métricas daqui não bateriam com o que a API faz de verdade.
+    y_pred = (y_proba >= LIMIAR_DECISAO).astype(int)
 
     metricas = {
         "algoritmo": nome,
@@ -150,6 +161,9 @@ def treinar_e_avaliar(nome, modelo, X_treino, y_treino, X_teste, y_teste):
         "recall": recall_score(y_teste, y_pred, zero_division=0),
         "f1_score": f1_score(y_teste, y_pred, zero_division=0),
         "auc_roc": roc_auc_score(y_teste, y_proba),
+        # AUC-PR (precisão média): resume a curva precisão x recall e,
+        # com só 0,17% de fraudes, é mais informativa que a AUC-ROC
+        "auc_pr": average_precision_score(y_teste, y_proba),
         "tempo_treino_s": tempo_treino,
         "matriz_confusao": confusion_matrix(y_teste, y_pred).tolist(),
     }
@@ -160,6 +174,7 @@ def treinar_e_avaliar(nome, modelo, X_treino, y_treino, X_teste, y_teste):
     print(f"Recall:    {metricas['recall']:.4f}")
     print(f"F1-score:  {metricas['f1_score']:.4f}")
     print(f"AUC-ROC:   {metricas['auc_roc']:.4f}")
+    print(f"AUC-PR:    {metricas['auc_pr']:.4f}")
     print("Matriz de confusão:")
     print(f"  {metricas['matriz_confusao']}")
     print("\nRelatório detalhado:")
@@ -232,7 +247,7 @@ def main():
     print("COMPARATIVO FINAL")
     print("=" * 60)
     tabela = pd.DataFrame(resultados)[
-        ["algoritmo", "precisao", "recall", "f1_score", "auc_roc", "tempo_treino_s"]
+        ["algoritmo", "precisao", "recall", "f1_score", "auc_roc", "auc_pr", "tempo_treino_s"]
     ]
     print(tabela.to_string(index=False))
 

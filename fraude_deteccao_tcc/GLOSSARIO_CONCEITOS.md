@@ -22,6 +22,11 @@ Derivada do score através de um corte fixo em **0,5**: se
 "legitima". Esse corte de 0,5 é diferente do "limiar de alerta"
 (explicado abaixo) — são dois conceitos relacionados, mas não iguais.
 
+Esse valor fica na constante `LIMIAR_DECISAO`, definida em
+`services/ml_service.py` e em `ml/train.py`. Os dois precisam ter o
+mesmo valor, para que as métricas calculadas no treino descrevam
+exatamente o que a API faz.
+
 ## Limiar de alerta (threshold)
 
 Ponto de corte **configurável** (padrão: 0,7) que define a partir de
@@ -56,4 +61,16 @@ O filtro pelo limiar de 0,7 só é aplicado na **consulta**
 `GET /api/alertas` — ou seja, o corte não decide o que é armazenado,
 decide o que é **exibido como prioritário** para revisão.
 
+## AUC-ROC e AUC-PR
 
+Duas formas de resumir em um número a qualidade do score, sem
+depender de um limiar específico. A AUC-ROC mede o quanto o modelo
+consegue colocar fraudes acima de transações legítimas no ranking.
+A AUC-PR (precisão média) resume a curva de precisão x recall, isto
+é, quantos dos alertas são fraudes de verdade a cada nível de recall.
+
+Com só 0,17% de fraudes, a AUC-ROC fica alta mesmo para modelos que
+geram muitos falsos positivos, porque as transações legítimas são a
+imensa maioria. A Regressão Logística é o exemplo: AUC-ROC de 0,968 e
+1.807 falsos positivos no teste. Por isso a AUC-PR é a medida mais
+informativa neste projeto.

@@ -8,6 +8,12 @@ Ambiente: modelo ativo = Random Forest (F1=0,8165, recall=0,7365,
 precisão=0,9160), treinado sobre o dataset Kaggle Credit Card Fraud
 Detection (284.807 registros, 492 fraudes, 0,17%).
 
+> Atualização de 08/10/2026: essas métricas foram calculadas na época
+> com `predict()`, que só marca fraude acima de 0,5. Com a mesma regra
+> da API (score >= 0,5), o mesmo modelo tem F1=0,8222, recall=0,7500 e
+> precisão=0,9098. Os testes abaixo não mudam, porque a API sempre usou
+> essa regra (ver Etapa 6 do `CHANGELOG.md`).
+
 ---
 
 ## Bloco 1 — Filtros de `GET /api/alertas`
@@ -155,6 +161,36 @@ classificada como 'fraude' (score=0.8500, modelo=random_forest_v1_2026-08-30)
 Evidencia que toda classificação realizada gera automaticamente uma
 linha de log com identificação da transação, resultado e versão do
 modelo utilizado, atendendo ao requisito de rastreabilidade (RNF04).
+
+### C.4 — Tempo de resposta da API (RNF01)
+**Ação:** `python ml/medir_latencia_http.py`, com a API rodando
+(`python app.py`), em 08/10/2026. O script envia 200 transações do
+conjunto de teste para `POST /transacoes/classificar`.
+**Ambiente:** notebook Intel Core i5-3337U (1,8 GHz, 2 núcleos), 8 GB
+de RAM, Windows 11, servidor de desenvolvimento do Flask.
+**Resultado:**
+
+| Versão | Média | p95 | Máximo |
+|---|---|---|---|
+| Antes (modelo com `n_jobs=-1`) | 133,0 ms | 337,1 ms | 1.391,0 ms |
+| Depois (API com `n_jobs=1`) | 87,1 ms | 232,4 ms | 525,2 ms |
+
+A primeira medição mostrou picos acima de 1 s. A causa era o Random
+Forest abrir threads em todos os núcleos a cada requisição para
+classificar uma única transação. Com `n_jobs=1` na API, 95% das
+requisições ficaram abaixo de 232 ms, dentro do limite de 500 ms do
+RNF01. O pior caso (525 ms) passou um pouco do limite nesse notebook.
+
+### C.5 — Classificação no limite de 0,5
+**Ação:** observação do log de auditoria durante o teste C.4.
+**Resultado:**
+```
+AUDITORIA: transacao_id=109 classificada como 'fraude' (score=0.5200, ...)
+AUDITORIA: transacao_id=120 classificada como 'fraude' (score=0.5000, ...)
+```
+A transação com score exatamente 0,5 foi classificada como fraude,
+confirmando a regra `score >= 0,5`. Nenhuma das duas aparece em
+`GET /api/alertas` com o limiar padrão de 0,7, como esperado.
 
 ## Conclusão dos testes
 

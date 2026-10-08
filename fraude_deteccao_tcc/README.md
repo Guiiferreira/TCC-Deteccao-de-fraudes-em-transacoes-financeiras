@@ -35,6 +35,9 @@ fraude_deteccao_tcc/
 ├── GLOSSARIO_CONCEITOS.md      # Explicação de score, limiar, classe prevista etc.
 └── ml/
     ├── train.py               # Treina, compara e registra os 3 algoritmos
+    ├── experimento.py         # Avaliação estatística: validação cruzada, McNemar, AUC-PR, balanceamento
+    ├── medir_latencia_http.py # Mede o tempo de resposta da API rodando (RNF01)
+    ├── resultados/            # Saída do experimento (CSVs, curva precisão x recall e RESULTADOS.md)
     ├── dados/                  # Onde vai o dataset baixado (Kaggle Credit Card Fraud) — não versionado
     └── modelos_salvos/          # Onde o modelo treinado (.pkl) é salvo — não versionado
 ```
@@ -117,6 +120,19 @@ Com o dataset no lugar e o `(venv)` ativo:
 python ml/train.py
 ```
 Isso treina e compara os três algoritmos (Regressão Logística, Árvore de Decisão, Random Forest), escolhe o melhor modelo, salva-o em `ml/modelos_salvos/modelo_atual.pkl` e registra as métricas de todos os três no banco de dados.
+
+#### Avaliação estatística dos modelos (opcional)
+
+O `train.py` faz uma única divisão 70/30. Para repetir a avaliação completa usada no artigo (validação cruzada repetida, intervalos de confiança, teste de McNemar, AUC-PR, sensibilidade ao recall mínimo e comparação com SMOTE e undersampling):
+
+```bash
+python ml/experimento.py --configuracao-sistema   # hiperparâmetros usados pelo sistema
+python ml/experimento.py                          # busca em grade de hiperparâmetros
+```
+
+Os resultados vão para `ml/resultados/sistema/` e `ml/resultados/ajustada/`, e o resumo de tudo está em `ml/resultados/RESULTADOS.md`. Os dois comandos são demorados: o primeiro leva cerca de 50 minutos num notebook comum, e o segundo, mais de uma hora. Como a semente é fixa (42), os números saem iguais em qualquer máquina, menos os de tempo.
+
+Para medir o tempo de resposta da API, suba a aplicação (passo 7) e, em outro terminal, rode `python ml/medir_latencia_http.py`. O script envia 200 transações do conjunto de teste, e todas ficam gravadas no banco.
 
 > Se você já tiver rodado o treino antes e mudar algo na estrutura do banco (ex: adicionar uma coluna em `models/`), pode ser necessário apagar o arquivo `fraude_deteccao.db` antes de rodar de novo, para que ele seja recriado do zero com o schema atualizado.
 
@@ -216,7 +232,10 @@ API (Postman) quanto via painel web (navegador real, com Playwright):
 - Treino e comparação dos 3 algoritmos, com registro de métricas no
   banco (`ModeloTreinado`) para cada um — RF01, RF06
 - Classificação de transações reais via API, com 100% de acerto na
-  amostra testada e tempo de resposta médio de ~1ms (RF02, RF03, RNF01)
+  amostra testada (RF02, RF03)
+- Tempo de resposta medido em 200 requisições: média de 87 ms e 95%
+  das requisições abaixo de 232 ms, num notebook Intel Core i5 de 2013
+  (RNF01; detalhes em `ml/resultados/RESULTADOS.md`)
 - Listagem de alertas priorizada por score, com filtro de limiar e
   status, na API e no painel — RF04
 - Marcação manual de revisão (fraude confirmada / falso positivo),
@@ -240,10 +259,17 @@ atingem o recall mínimo de 70% exigido pelo RNF03, aquele com maior
 F1-score (equilíbrio entre precisão e recall).
 
 Com os dados reais do dataset, isso faz o **Random Forest** ser
-escolhido automaticamente (F1 ≈ 0,816, recall ≈ 73,6%, precisão ≈
-91,6%), em vez da Regressão Logística — que tem a maior AUC-ROC
-(≈ 0,968), mas gera um volume de falsos positivos que a tornaria
-pouco útil na prática.
+escolhido automaticamente (F1 ≈ 0,822, recall = 75,0%, precisão ≈
+91,0%, AUC-PR ≈ 0,810), em vez da Regressão Logística — que tem a
+maior AUC-ROC (≈ 0,968), mas gera 1.807 falsos positivos no conjunto
+de teste.
+
+O treino e a API usam a mesma regra de decisão: a transação é
+classificada como fraude quando o score é maior ou igual a 0,5
+(constante `LIMIAR_DECISAO` em `ml/train.py` e
+`services/ml_service.py`). A validação estatística dessa escolha
+(validação cruzada, teste de McNemar e sensibilidade a outros valores
+de recall mínimo) está em `ml/resultados/RESULTADOS.md`.
 
 ## Documentação complementar
 
@@ -253,3 +279,5 @@ pouco útil na prática.
   navegador, com resultados registrados
 - `GLOSSARIO_CONCEITOS.md` — explicação de conceitos do sistema
   (score, limiar de alerta, classe prevista etc.)
+- `ml/resultados/RESULTADOS.md` — resultados da avaliação estatística
+  dos modelos e da medição de tempo de resposta
